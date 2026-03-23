@@ -37,6 +37,8 @@ COPY --chown=node:node --from=build /app /app
 RUN npm install --global --omit=dev @anthropic-ai/claude-code@latest @openai/codex@latest opencode-ai \
   && mkdir -p /paperclip \
   && chown node:node /paperclip
+COPY --chown=root:root scripts/start-coolify.sh /app/scripts/start-coolify.sh
+RUN chmod 755 /app/scripts/start-coolify.sh
 
 ENV NODE_ENV=production \
   HOME=/paperclip \
@@ -52,5 +54,5 @@ ENV NODE_ENV=production \
 VOLUME ["/paperclip"]
 EXPOSE 3100
 
-USER node
-CMD ["node", "--import", "./server/node_modules/tsx/dist/loader.mjs", "server/dist/index.js"]
+USER root
+ENTRYPOINT ["/app/scripts/start-coolify.sh"]
