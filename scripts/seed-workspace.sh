@@ -19,9 +19,39 @@ if ! command -v ssh >/dev/null 2>&1; then
   exit 1
 fi
 
-if [ -d "$workspace_repo_dir/.git" ]; then
-  echo "Workspace repo already exists at $workspace_repo_dir"
+is_valid_workspace_repo() {
+  repo_dir="$1"
+  expected_origin="$2"
+
+  if [ ! -d "$repo_dir" ]; then
+    return 1
+  fi
+
+  if ! git -C "$repo_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    return 1
+  fi
+
+  origin_url="$(git -C "$repo_dir" remote get-url origin 2>/dev/null || true)"
+  if [ -z "$origin_url" ] || [ "$origin_url" != "$expected_origin" ]; then
+    return 1
+  fi
+
+  if ! git -C "$repo_dir" status --short >/dev/null 2>&1; then
+    return 1
+  fi
+
+  return 0
+}
+
+if is_valid_workspace_repo "$workspace_repo_dir" "$workspace_repo_ssh_url"; then
+  echo "Workspace repo already exists and is valid at $workspace_repo_dir"
   exit 0
+fi
+
+if [ -e "$workspace_repo_dir" ]; then
+  echo "Workspace repo path exists but is not a valid seeded checkout: $workspace_repo_dir" >&2
+  echo "Remove the directory and redeploy to allow a fresh clone." >&2
+  exit 1
 fi
 
 mkdir -p /paperclip/workspaces
